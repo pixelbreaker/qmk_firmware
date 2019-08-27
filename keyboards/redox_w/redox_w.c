@@ -15,6 +15,16 @@ void matrix_init_kb(void) {
 	led_init();
 }
 
+void matrix_scan_kb(void) {
+	// put your looping keyboard code here
+	// runs every cycle (a lot)
+	matrix_scan_user();
+}
+
+void led_set_kb(uint8_t usb_led) {
+    led_set_user(usb_led);
+}
+
 #ifdef ONEHAND_ENABLE
 __attribute__ ((weak))
 const keypos_t hand_swap_config[MATRIX_ROWS][MATRIX_COLS] = {
