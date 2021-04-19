@@ -1,7 +1,5 @@
 #include QMK_KEYBOARD_H
 
-extern keymap_config_t keymap_config;
-
 // Layer names
 #define _QWERTY 0
 #define _SYMB 1
@@ -14,17 +12,17 @@ extern keymap_config_t keymap_config;
 #define _RESET 8
 #define _NUMPAD 9
 
-//Tap Dance Declarations
-enum tap_dance {
-  TD_PRNSL,
-  TD_PRNSR,
-};
+//Tap ------------Dance Declarations
+// enum tap_dance {
+//   TD_PRNSL,
+//   TD_PRNSR,
+// };
 
 // Tap dance definitions
-qk_tap_dance_action_t tap_dance_actions[] = {
-  [TD_PRNSL] = ACTION_TAP_DANCE_DOUBLE(KC_LBRC, KC_LCBR), // [[ -> {
-  [TD_PRNSR] = ACTION_TAP_DANCE_DOUBLE(KC_RBRC, KC_RCBR), // ]] -> }
-};
+// qk_tap_dance_action_t tap_dance_actions[] = {
+//   [TD_PRNSL] = ACTION_TAP_DANCE_DOUBLE(KC_LBRC, KC_LCBR), // [[ -> {
+//   [TD_PRNSR] = ACTION_TAP_DANCE_DOUBLE(KC_RBRC, KC_RCBR), // ]] -> }
+// };
 
 // Nicer keycode alias for keymap readability
 #define x KC_NO // No action
@@ -59,106 +57,21 @@ qk_tap_dance_action_t tap_dance_actions[] = {
 #define SCRSHT LSFT(KC_P5)
 #define STATS MEH(KC_8)
 
-uint16_t frame_timer;
-uint16_t anim_timer;
-uint16_t anim_frame = 0;
-int anim_dir = 1;
-bool anim_run = true;
-bool locked = false;
-bool locked_light = true;
+// #ifdef USE_I2C
+// void keyboard_pre_init_kb(void) {
+//     /* enable internal pull-up resistors on i2c pins */
+//     setPinInputHigh(D0);
+//     setPinInputHigh(D1);
 
-// Init and switch off the "white" 4th LED
-void led_init_user(void) {
-	DDRD  |= (1<<0) | (1<<1);
-	PORTD |= (1<<0) | (1<<1);
+//     keyboard_pre_init_user();
+// }
+// #endif
+
+// #ifdef AUDIO_ENABLE
+void keyboard_post_init_user(void) {
+    PLAY_SONG(STARTUP_SOUND);
 }
-
-// Turn the white LED on/off with CAPSLOCK state
-void led_set_user(uint8_t usb_led) {
-    if (usb_led & (1<<USB_LED_CAPS_LOCK)) {
-        wht_led_on;
-    } else {
-        wht_led_off;
-    }
-}
-void matrix_init_user(void) {
-    led_init_user();
-
-    frame_timer = timer_read();
-    anim_timer = timer_read();
-    anim_frame = 0;
-}
-
-void matrix_scan_user(void) {
-    if (anim_run && timer_elapsed(anim_timer) < 1440) {
-        if (timer_elapsed(frame_timer) > 180) {
-            switch (anim_frame) {
-                case 0:
-                    red_led_on; blu_led_off; grn_led_off; wht_led_off;
-                    break;
-                case 1:
-                    red_led_on; blu_led_on; grn_led_off; wht_led_off;
-                    break;
-                case 2:
-                    red_led_on; blu_led_on; grn_led_on; wht_led_off;
-                    break;
-                case 3:
-                    red_led_on; blu_led_on; grn_led_on; wht_led_on;
-                    break;
-            }
-
-            anim_frame = anim_frame + anim_dir;
-            if (anim_dir > 0 && anim_frame == 3) anim_dir = -anim_dir;
-            else if(anim_dir < 0 && anim_frame == 0) anim_dir = -anim_dir;
-            frame_timer = timer_read();
-        }
-    } else if (anim_run) {
-        anim_run = false;
-        red_led_off; blu_led_off; grn_led_off; wht_led_off;
-    } else if (locked && timer_elapsed(frame_timer) > 500) {
-      if (locked_light) {
-        set_led_red;
-      } else {
-        set_led_off;
-      }
-      locked_light = !locked_light;
-      frame_timer = timer_read();
-    }
-}
-
-// Change the receiver's LEDs based on the current layer
-layer_state_t layer_state_set_user(layer_state_t state) {
-    anim_run = false;
-
-    switch (get_highest_layer(state)) {
-        case _QWERTY:
-            locked = false;
-            set_led_off;
-            break;
-        case _SYMB:
-            set_led_green;
-            break;
-        case _NAV:
-            set_led_red;
-            break;
-        case _MOUSE:
-            set_led_blue;
-            break;
-        case _TOGGLE:
-            set_led_green;
-            break;
-        case _GAMING:
-            set_led_yellow;
-            break;
-        case _LOCK:
-            locked = true;
-            frame_timer = timer_read();
-            break;
-        default:
-            break;
-    }
-  return state;
-}
+// #endif
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_QWERTY] = LAYOUT(
@@ -167,7 +80,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     //├────────┼────────┼────────┼────────┼────────┼────────┼────────┐                         ┌────────┼────────┼────────┼────────┼────────┼────────┼────────┤
       L_NAV,   KC_Q,    KC_W,    KC_E,    KC_R,    KC_T,    KC_MINS,                           KC_EQL,  KC_Y,    KC_U,    KC_I,    KC_O,    KC_P,    KC_GRV,
     //├────────┼────────┼────────┼────────┼────────┼────────┼────────┤                         ├────────┼────────┼────────┼────────┼────────┼────────┼────────┤
-      L_SYMB,  KC_A,    KC_S,    KC_D,    KC_F,    KC_G,    KC_DEL,                            KC_DEL,  KC_H,   KC_J,    KC_K,    KC_L,    KC_SCLN, KC_QUOT,
+      L_SYMB,  KC_A,    KC_S,    KC_D,    KC_F,    KC_G,    KC_J,                            KC_DEL,  KC_H,   KC_J,    KC_K,    KC_L,    KC_SCLN, KC_QUOT,
     //├────────┼────────┼────────┼────────┼────────┼────────┼────────┼────────┐       ┌────────┼────────┼────────┼────────┼────────┼────────┼────────┼────────┤
       KC_LSPO, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    L_TOGGLE,KC_END,          KC_PGUP,  KC_PGDN, KC_N,    KC_M,   KC_COMM, KC_DOT,  KC_SLSH, KC_RSPC,
     //├────────┼────────┼────────┼────────┼────┬───┴────┬───┼────────┼────────┤       ├────────┼────────┼───┬────┴───┬────┼────────┼────────┼────────┼────────┤
