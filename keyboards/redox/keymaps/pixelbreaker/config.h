@@ -29,14 +29,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // mousekeys
 #define MOUSEKEY_INTERVAL 16
-#define MOUSEKEY_MAX_SPEED 6
-#define MOUSEKEY_TIME_TO_MAX 20
+#define MOUSEKEY_MAX_SPEED 5
+#define MOUSEKEY_TIME_TO_MAX 25
 #define MOUSEKEY_DELAY 150
 
 // encoders
 #define ENCODERS_PAD_A { F4 }
 #define ENCODERS_PAD_B { D1 }
 #define ENCODER_RESOLUTION 4
+#define ENCODER_DIRECTION_FLIP
 
 // #define ENCODER_DIRECTION_FLIP
 

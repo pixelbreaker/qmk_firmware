@@ -31,6 +31,8 @@ enum my_keycodes {
   MACSLEEP,
   GAMING,
   ENC_PLAY,
+  ALT_TAB,
+  ALT_TAB_REV,
 };
 
 /*
@@ -72,7 +74,7 @@ enum my_keycodes {
     HD_NOTE(_E6),
 
 #define MT_SOUND \
-    M__NOTE(_A4,5)
+    M__NOTE(_A2,10)
 
 #undef ONE_UP_SOUND
 #define ONE_UP_SOUND \
@@ -91,7 +93,7 @@ enum my_keycodes {
 
 
 #ifdef AUDIO_ENABLE
-    float startup[][2] = SONG(E1M1_DOOM);
+    float startup[][2] = SONG(ONE_UP_SOUND);
     float raise_low[][2] = SONG(MT_SOUND);
     float gaming_on[][2] = SONG(NUM_LOCK_ON_SOUND);
     float gaming_off[][2] = SONG(NUM_LOCK_OFF_SOUND);
@@ -113,12 +115,14 @@ enum my_keycodes {
 enum tap_dance {
   HOME_END,
   SHFT_CAPS,
+  THREE_HASH,
 };
 
 // Tap dance definitions
 qk_tap_dance_action_t tap_dance_actions[] = {
   [HOME_END] = ACTION_TAP_DANCE_DOUBLE(KC_HOME, KC_END),
   [SHFT_CAPS] = ACTION_TAP_DANCE_DOUBLE(KC_LSFT, KC_CAPS),
+  [THREE_HASH] = ACTION_TAP_DANCE_DOUBLE(KC_3, LALT(KC_3)),
 };
 
 // Nicer keycode alias for keymap readability
@@ -153,6 +157,9 @@ qk_tap_dance_action_t tap_dance_actions[] = {
 // Gaming
 #define SCRSHT LSFT(KC_P5)
 #define STATS MEH(KC_8)
+
+bool is_alt_tab_active = false;
+uint16_t alt_tab_timer = 0;
 
 // uint16_t frame_timer;
 
@@ -214,43 +221,70 @@ bool enc_skip = false;
 
 #ifdef ENCODER_ENABLE
     void encoder_update_user(uint8_t index, bool clockwise) {
-        if (index == 1) { /* First encoder */
+        if (index == 1) {
             enc_used = true;
             if(enc_skip) {
                 if (clockwise) {
-                    tap_code16(KC_MPRV);
-                } else {
                     tap_code16(KC_MNXT);
+                } else {
+                    tap_code16(KC_MPRV);
+                }
+            } else if (IS_LAYER_ON(_TOGGLE)) { // cycle windows
+                if (clockwise) {
+                    if (!is_alt_tab_active) {
+                        is_alt_tab_active = true;
+                        register_code(KC_LGUI);
+                    }
+                    alt_tab_timer = timer_read();
+                    unregister_code(KC_LSFT);
+                    tap_code(KC_TAB);
+                } else {
+                    if (!is_alt_tab_active) {
+                        is_alt_tab_active = true;
+                        register_code(KC_LGUI);
+                    }
+                    alt_tab_timer = timer_read();
+                    register_code(KC_LSFT);
+                    tap_code(KC_TAB);
                 }
             } else if(IS_LAYER_ON(_SYMB)) {
                 if (clockwise) {
-                    tap_code16(KC_LEFT);
-                } else {
                     tap_code16(KC_RGHT);
+                } else {
+                    tap_code16(KC_LEFT);
                 }
             } else if(IS_LAYER_ON(_NAV)) {
                 if (clockwise) {
-                    tap_code16(KC_UP);
-                } else {
                     tap_code16(KC_DOWN);
+                } else {
+                    tap_code16(KC_UP);
                 }
             } else if(IS_LAYER_ON(_MOUSE)) {
                 if (clockwise) {
-                    tap_code16(KC_WH_U);
-                } else {
                     tap_code16(KC_WH_D);
+                } else {
+                    tap_code16(KC_WH_U);
                 }
             } else {
                 if (clockwise) {
-                    tap_code(KC_VOLD);
-                } else {
                     tap_code(KC_VOLU);
+                } else {
+                    tap_code(KC_VOLD);
                 }
             }
         }
     }
 #endif
 
+void matrix_scan_user(void) {
+  if (is_alt_tab_active) {
+    if (timer_elapsed(alt_tab_timer) > 1000) {
+      unregister_code(KC_LGUI);
+      unregister_code(KC_LSFT);
+      is_alt_tab_active = false;
+    }
+  }
+}
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
   switch (keycode) {
@@ -322,7 +356,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_QWERTY] = LAYOUT(
     //┌────────┬────────┬────────┬────────┬────────┬────────┐                                           ┌────────┬────────┬────────┬────────┬────────┬────────┐
-      L_MOUSE, KC_1,    KC_2,    KC_3,    KC_4,    KC_5,                                                KC_6,    KC_7,    KC_8,    KC_9,    KC_0,    KC_BSLS,
+      L_MOUSE, KC_1,    KC_2, TD(THREE_HASH),KC_4, KC_5,                                                KC_6,    KC_7,    KC_8,    KC_9,    KC_0,    KC_BSLS,
     //├────────┼────────┼────────┼────────┼────────┼────────┼────────┐                         ┌────────┼────────┼────────┼────────┼────────┼────────┼────────┤
       L_NAV,   KC_Q,    KC_W,    KC_E,    KC_R,    KC_T,    KC_MINS,                           KC_EQL,  KC_Y,    KC_U,    KC_I,    KC_O,    KC_P,    KC_GRV,
     //├────────┼────────┼────────┼────────┼────────┼────────┼────────┤                         ├────────┼────────┼────────┼────────┼────────┼────────┼────────┤
