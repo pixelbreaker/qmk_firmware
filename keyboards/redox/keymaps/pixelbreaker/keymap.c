@@ -19,11 +19,6 @@ extern keymap_config_t keymap_config;
 #define _RESET 8
 #define _NUMPAD 9
 
-//Tap Dance Declarations
-// enum tap_dance {
-//   TD_CAPSSYMB,
-// };
-
 enum my_keycodes {
   MOUSE = SAFE_RANGE,
   SYMBOL,
@@ -31,42 +26,7 @@ enum my_keycodes {
   MACSLEEP,
   GAMING,
   ENC_PLAY,
-  ALT_TAB,
-  ALT_TAB_REV,
 };
-
-/*
-#undef E1M1_DOOM
-#define E1M1_DOOM  \
-    Q__NOTE(_E3 ), \
-    Q__NOTE(_E3 ), \
-    Q__NOTE(_E4 ), \
-    Q__NOTE(_E3 ), \
-    Q__NOTE(_E3 ), \
-    Q__NOTE(_D4 ), \
-    Q__NOTE(_E3 ), \
-    Q__NOTE(_E3 ), \
-    Q__NOTE(_C4 ), \
-    Q__NOTE(_E3 ), \
-    Q__NOTE(_E3 ), \
-    Q__NOTE(_BF3), \
-    Q__NOTE(_E3 ), \
-    Q__NOTE(_E3 ), \
-    Q__NOTE(_B3 ), \
-    Q__NOTE(_C4 ), \
-    Q__NOTE(_E3 ), \
-    Q__NOTE(_E3 ), \
-    Q__NOTE(_E4 ), \
-    Q__NOTE(_E3 ), \
-    Q__NOTE(_E3 ), \
-    Q__NOTE(_D4 ), \
-    Q__NOTE(_E3 ), \
-    Q__NOTE(_E3 ), \
-    Q__NOTE(_C4 ), \
-    Q__NOTE(_E3 ), \
-    Q__NOTE(_E3 ), \
-    H__NOTE(_BF3),
-*/
 
 #undef COIN_SOUND
 #define COIN_SOUND \
@@ -104,14 +64,7 @@ enum my_keycodes {
     float sleep[][2] = SONG(PLOVER_GOODBYE_SOUND);
 #endif
 
-// float tone_qwerty[][2]     = SONG(QWERTY_SOUND);
-// float tone_dvorak[][2]     = SONG(DVORAK_SOUND);
-// float tone_colemak[][2]    = SONG(COLEMAK_SOUND);
-// float tone_plover[][2]     = SONG(PLOVER_SOUND);
-// float tone_plover_gb[][2]  = SONG(PLOVER_GOODBYE_SOUND);
-// float music_scale[][2]     = SONG(MUSIC_SCALE_SOUND);
-
-//Tap ------------Dance Declarations
+//Tap Dance Declarations
 enum tap_dance {
   HOME_END,
   SHFT_CAPS,
@@ -161,18 +114,6 @@ qk_tap_dance_action_t tap_dance_actions[] = {
 bool is_alt_tab_active = false;
 uint16_t alt_tab_timer = 0;
 
-// uint16_t frame_timer;
-
-// #ifdef USE_I2C
-// void keyboard_pre_init_kb(void) {
-//     /* enable internal pull-up resistors on i2c pins */
-//     setPinInputHigh(D0);
-//     setPinInputHigh(D1);
-
-//     keyboard_pre_init_user();
-// }
-// #endif
-
 void matrix_init_user(void) {
     // frame_timer = timer_read();
     #ifdef AUDIO_ENABLE
@@ -180,7 +121,6 @@ void matrix_init_user(void) {
         startup_user();
     #endif
 }
-
 
 #ifdef AUDIO_ENABLE
     void startup_user()
