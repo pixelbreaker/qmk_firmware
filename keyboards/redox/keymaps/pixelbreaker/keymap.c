@@ -1,4 +1,11 @@
+// make redox:pixelbreaker:avrdude AUDIO_ENABLE=yes
+
 #include QMK_KEYBOARD_H
+#ifdef AUDIO_ENABLE
+  #include "audio.h"
+#endif
+
+extern keymap_config_t keymap_config;
 
 // Layer names
 #define _QWERTY 0
@@ -12,17 +19,107 @@
 #define _RESET 8
 #define _NUMPAD 9
 
-//Tap ------------Dance Declarations
+//Tap Dance Declarations
 // enum tap_dance {
-//   TD_PRNSL,
-//   TD_PRNSR,
+//   TD_CAPSSYMB,
 // };
 
+enum my_keycodes {
+  MOUSE = SAFE_RANGE,
+  SYMBOL,
+  NAV,
+  MACSLEEP,
+  GAMING,
+  ENC_PLAY,
+};
+
+/*
+#undef E1M1_DOOM
+#define E1M1_DOOM  \
+    Q__NOTE(_E3 ), \
+    Q__NOTE(_E3 ), \
+    Q__NOTE(_E4 ), \
+    Q__NOTE(_E3 ), \
+    Q__NOTE(_E3 ), \
+    Q__NOTE(_D4 ), \
+    Q__NOTE(_E3 ), \
+    Q__NOTE(_E3 ), \
+    Q__NOTE(_C4 ), \
+    Q__NOTE(_E3 ), \
+    Q__NOTE(_E3 ), \
+    Q__NOTE(_BF3), \
+    Q__NOTE(_E3 ), \
+    Q__NOTE(_E3 ), \
+    Q__NOTE(_B3 ), \
+    Q__NOTE(_C4 ), \
+    Q__NOTE(_E3 ), \
+    Q__NOTE(_E3 ), \
+    Q__NOTE(_E4 ), \
+    Q__NOTE(_E3 ), \
+    Q__NOTE(_E3 ), \
+    Q__NOTE(_D4 ), \
+    Q__NOTE(_E3 ), \
+    Q__NOTE(_E3 ), \
+    Q__NOTE(_C4 ), \
+    Q__NOTE(_E3 ), \
+    Q__NOTE(_E3 ), \
+    H__NOTE(_BF3),
+*/
+
+#undef COIN_SOUND
+#define COIN_SOUND \
+    E__NOTE(_A5),      \
+    HD_NOTE(_E6),
+
+#define MT_SOUND \
+    M__NOTE(_A4,5)
+
+#undef ONE_UP_SOUND
+#define ONE_UP_SOUND \
+    Q__NOTE(_E6  ),  \
+    Q__NOTE(_G6  ),  \
+    Q__NOTE(_E7  ),  \
+    Q__NOTE(_C7  ),  \
+    Q__NOTE(_D7  ),  \
+    Q__NOTE(_G7  ),
+
+#undef SONIC_RING
+#define SONIC_RING \
+    E__NOTE(_E6),  \
+    E__NOTE(_G6),  \
+    HD_NOTE(_C7),
+
+
+#ifdef AUDIO_ENABLE
+    float startup[][2] = SONG(E1M1_DOOM);
+    float raise_low[][2] = SONG(MT_SOUND);
+    float gaming_on[][2] = SONG(NUM_LOCK_ON_SOUND);
+    float gaming_off[][2] = SONG(NUM_LOCK_OFF_SOUND);
+    float adjust[][2] = SONG(COIN_SOUND);
+    float my_song[][2] = SONG(NO_SOUND);
+    float tone_caps_on[][2] = SONG(CAPS_LOCK_ON_SOUND);
+    float tone_caps_off[][2] = SONG(CAPS_LOCK_OFF_SOUND);
+    float sleep[][2] = SONG(PLOVER_GOODBYE_SOUND);
+#endif
+
+// float tone_qwerty[][2]     = SONG(QWERTY_SOUND);
+// float tone_dvorak[][2]     = SONG(DVORAK_SOUND);
+// float tone_colemak[][2]    = SONG(COLEMAK_SOUND);
+// float tone_plover[][2]     = SONG(PLOVER_SOUND);
+// float tone_plover_gb[][2]  = SONG(PLOVER_GOODBYE_SOUND);
+// float music_scale[][2]     = SONG(MUSIC_SCALE_SOUND);
+
+//Tap ------------Dance Declarations
+enum tap_dance {
+  HOME_END,
+  SHFT_CAPS,
+};
+
 // Tap dance definitions
-// qk_tap_dance_action_t tap_dance_actions[] = {
-//   [TD_PRNSL] = ACTION_TAP_DANCE_DOUBLE(KC_LBRC, KC_LCBR), // [[ -> {
-//   [TD_PRNSR] = ACTION_TAP_DANCE_DOUBLE(KC_RBRC, KC_RCBR), // ]] -> }
-// };
+qk_tap_dance_action_t tap_dance_actions[] = {
+  [HOME_END] = ACTION_TAP_DANCE_DOUBLE(KC_HOME, KC_END),
+  [SHFT_CAPS] = ACTION_TAP_DANCE_DOUBLE(KC_LSFT, KC_CAPS),
+};
 
 // Nicer keycode alias for keymap readability
 #define x KC_NO // No action
@@ -30,7 +127,7 @@
 #define L_SYMB MO(_SYMB)
 #define L_NAV LT(_NAV,KC_TAB)
 #define L_MOUSE LT(_MOUSE,KC_ESC)
-#define L_TOGGLE LT(_TOGGLE,KC_HOME)
+#define L_TOGGLE LT(_TOGGLE,KC_DEL)
 #define L_GAMING TG(_GAMING)
 #define L_NUMPAD MO(_NUMPAD)
 #define L_LOCK TO(_LOCK)
@@ -57,6 +154,8 @@
 #define SCRSHT LSFT(KC_P5)
 #define STATS MEH(KC_8)
 
+// uint16_t frame_timer;
+
 // #ifdef USE_I2C
 // void keyboard_pre_init_kb(void) {
 //     /* enable internal pull-up resistors on i2c pins */
@@ -67,11 +166,158 @@
 // }
 // #endif
 
-// #ifdef AUDIO_ENABLE
-void keyboard_post_init_user(void) {
-    PLAY_SONG(STARTUP_SOUND);
+void matrix_init_user(void) {
+    // frame_timer = timer_read();
+    #ifdef AUDIO_ENABLE
+        set_voice(default_voice);
+        startup_user();
+    #endif
 }
-// #endif
+
+
+#ifdef AUDIO_ENABLE
+    void startup_user()
+    {
+        _delay_ms(120); // gets rid of tick
+        PLAY_SONG(startup);
+    }
+
+    void shutdown_user()
+    {
+        _delay_ms(150);
+        stop_all_notes();
+    }
+
+    void led_set_user(uint8_t usb_led)
+    {
+        static uint8_t old_usb_led = 0;
+
+        _delay_ms(10); // gets rid of tick
+
+        if ((usb_led & (1<<USB_LED_CAPS_LOCK)) && !(old_usb_led & (1<<USB_LED_CAPS_LOCK)))
+        {
+                // If CAPS LK LED is turning on...
+                PLAY_SONG(tone_caps_on);
+        }
+        else if (!(usb_led & (1<<USB_LED_CAPS_LOCK)) && (old_usb_led & (1<<USB_LED_CAPS_LOCK)))
+        {
+                // If CAPS LK LED is turning off...
+                PLAY_SONG(tone_caps_off);
+        }
+
+        old_usb_led = usb_led;
+    }
+#endif
+
+bool enc_used = false;
+bool enc_skip = false;
+
+#ifdef ENCODER_ENABLE
+    void encoder_update_user(uint8_t index, bool clockwise) {
+        if (index == 1) { /* First encoder */
+            enc_used = true;
+            if(enc_skip) {
+                if (clockwise) {
+                    tap_code16(KC_MPRV);
+                } else {
+                    tap_code16(KC_MNXT);
+                }
+            } else if(IS_LAYER_ON(_SYMB)) {
+                if (clockwise) {
+                    tap_code16(KC_LEFT);
+                } else {
+                    tap_code16(KC_RGHT);
+                }
+            } else if(IS_LAYER_ON(_NAV)) {
+                if (clockwise) {
+                    tap_code16(KC_UP);
+                } else {
+                    tap_code16(KC_DOWN);
+                }
+            } else if(IS_LAYER_ON(_MOUSE)) {
+                if (clockwise) {
+                    tap_code16(KC_WH_U);
+                } else {
+                    tap_code16(KC_WH_D);
+                }
+            } else {
+                if (clockwise) {
+                    tap_code(KC_VOLD);
+                } else {
+                    tap_code(KC_VOLU);
+                }
+            }
+        }
+    }
+#endif
+
+
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+  switch (keycode) {
+    case GAMING:
+        if (record->event.pressed) {
+            if (IS_LAYER_ON(_GAMING)) {
+                layer_off(_GAMING);
+                #ifdef AUDIO_ENABLE
+                    PLAY_SONG (gaming_off);
+                #endif
+                #ifdef AUTO_SHIFT_ENABLE
+                    autoshift_enable();
+                #endif
+            } else {
+                layer_on(_GAMING);
+                #ifdef AUDIO_ENABLE
+                    PLAY_SONG (gaming_on);
+                #endif
+                #ifdef AUTO_SHIFT_ENABLE
+                    autoshift_disable();
+                #endif
+            }
+        }
+        return false;
+    break;
+    case SYMBOL:
+        if (record->event.pressed) {
+            layer_on(_SYMB);
+            #ifdef AUDIO_ENABLE
+                PLAY_SONG (raise_low);
+            #endif
+        } else {
+            layer_off(_SYMB);
+            #ifdef AUDIO_ENABLE
+                PLAY_SONG (raise_low);
+            #endif
+        }
+        return false;
+    break;
+    case MACSLEEP:
+        if (record->event.pressed) {
+            register_code(KC_RSFT);
+            register_code(KC_RCTL);
+            register_code(KC_POWER);
+            unregister_code(KC_POWER);
+            unregister_code(KC_RCTL);
+            unregister_code(KC_RSFT);
+
+            PLAY_SONG(sleep);
+        }
+      return false;
+    break;
+    case ENC_PLAY:
+        if (record->event.pressed) {
+            enc_skip = true;
+            enc_used = false;
+        } else {
+            enc_skip = false;
+            if (!enc_used) {
+                tap_code(KC_MPLY);
+            }
+        }
+        return false;
+    break;
+  }
+  return true;
+}
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_QWERTY] = LAYOUT(
@@ -80,11 +326,11 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     //├────────┼────────┼────────┼────────┼────────┼────────┼────────┐                         ┌────────┼────────┼────────┼────────┼────────┼────────┼────────┤
       L_NAV,   KC_Q,    KC_W,    KC_E,    KC_R,    KC_T,    KC_MINS,                           KC_EQL,  KC_Y,    KC_U,    KC_I,    KC_O,    KC_P,    KC_GRV,
     //├────────┼────────┼────────┼────────┼────────┼────────┼────────┤                         ├────────┼────────┼────────┼────────┼────────┼────────┼────────┤
-      L_SYMB,  KC_A,    KC_S,    KC_D,    KC_F,    KC_G,    KC_J,                            KC_DEL,  KC_H,   KC_J,    KC_K,    KC_L,    KC_SCLN, KC_QUOT,
+      SYMBOL,  KC_A,    KC_S,    KC_D,    KC_F,    KC_G,    KC_BSLS,                            KC_QUOT, KC_H,   KC_J,    KC_K,    KC_L,    KC_SCLN, KC_QUOT,
     //├────────┼────────┼────────┼────────┼────────┼────────┼────────┼────────┐       ┌────────┼────────┼────────┼────────┼────────┼────────┼────────┼────────┤
-      KC_LSPO, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    L_TOGGLE,KC_END,          KC_PGUP,  KC_PGDN, KC_N,    KC_M,   KC_COMM, KC_DOT,  KC_SLSH, KC_RSPC,
+      KC_LSPO, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    L_TOGGLE,TD(HOME_END),    KC_PGUP,  ENC_PLAY, KC_N,    KC_M,   KC_COMM, KC_DOT,  KC_SLSH, KC_RSPC,
     //├────────┼────────┼────────┼────────┼────┬───┴────┬───┼────────┼────────┤       ├────────┼────────┼───┬────┴───┬────┼────────┼────────┼────────┼────────┤
-      KC_LCTL, HYP_MINS,MEH_PLUS,KC_LALT,      KC_LGUI,     KC_SPC,  KC_ENT,          KC_ENT,  KC_BSPC,     MO(_NAV),     KC_LEFT, KC_UP,   KC_DOWN, KC_RGHT
+      KC_UP,   KC_DOWN, KC_LCTL, KC_LALT,      KC_LGUI,     KC_SPC,  KC_ENT,          TD(SHFT_CAPS),KC_BSPC, MO(_NAV),    KC_RALT, KC_RCTL,   KC_LEFT, KC_RGHT
     //└────────┴────────┴────────┴────────┘    └────────┘   └────────┴────────┘       └────────┴────────┘   └────────┘    └────────┴────────┴────────┴────────┘
     ),
 
@@ -98,7 +344,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     //├────────┼────────┼────────┼────────┼────────┼────────┼────────┼────────┐       ┌────────┼────────┼────────┼────────┼────────┼────────┼────────┼────────┤
       _v_,     x,       CUT,     COPY,    PASTE,   x,       _v_,     _v_,             LINE_UP, LINE_DOWN,KC_AMPR,KC_LT,   KC_GT,   KC_MINS, KC_SLSH, KC_GRV,
     //├────────┼────────┼────────┼────────┼────┬───┴────┬───┼────────┼────────┤       ├────────┼────────┼───┬────┴───┬────┼────────┼────────┼────────┼────────┤
-      _v_,       x,       REDO,    UNDO,         _v_,         _v_,   KC_ENT,          SORT_LINES,DEL_LINE,  _v_,          _v_,     _v_,     _v_,     _v_
+      _v_,       x,       _v_,    _v_,         _v_,         _v_,   KC_ENT,          SORT_LINES,DEL_LINE,  _v_,          _v_,     _v_,     _v_,     _v_
     //└────────┴────────┴────────┴────────┘    └────────┘   └────────┴────────┘       └────────┴────────┘   └────────┘    └────────┴────────┴────────┴────────┘
     ),
 
@@ -139,7 +385,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     //├────────┼────────┼────────┼────────┼────────┼────────┼────────┤                         ├────────┼────────┼────────┼────────┼────────┼────────┼────────┤
       x,       x,       KC_WH_L, KC_WH_D, KC_WH_R, x,       x,                                  x,      KC_WH_D, KC_MS_L, KC_MS_D, KC_MS_R, x,       KC_MPLY,
     //├────────┼────────┼────────┼────────┼────────┼────────┼────────┼────────┐       ┌────────┼────────┼────────┼────────┼────────┼────────┼────────┼────────┤
-      x,       x,       x,       x,       x,       x,       x,       x,               x,       x,       x,       x,       x,       x,       x,       x,
+      x,       x,       x,       x,       x,       x,       x,       x,               x,       KC_BTN1, x,       x,       x,       x,       x,       x,
     //├────────┼────────┼────────┼────────┼────┬───┴────┬───┼────────┼────────┤       ├────────┼────────┼───┬────┴───┬────┼────────┼────────┼────────┼────────┤
       x,       x,       x,       x,            x,           KC_BTN1, KC_BTN2,         x,       x,           x,            x,       x,       x,       x
     //└────────┴────────┴────────┴────────┘    └────────┘   └────────┴────────┘       └────────┴────────┘   └────────┘    └────────┴────────┴────────┴────────┘
@@ -149,11 +395,11 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     //┌────────┬────────┬────────┬────────┬────────┬────────┐                                           ┌────────┬────────┬────────┬────────┬────────┬────────┐
       x,       KC_F1,   KC_F2,   KC_F3,   KC_F4,   KC_F5,                                               KC_F6,   KC_F7,   KC_F8,   KC_F9,   KC_F10,  L_LOCK,
     //├────────┼────────┼────────┼────────┼────────┼────────┼────────┐                         ┌────────┼────────┼────────┼────────┼────────┼────────┼────────┤
-      x,       x,       x,       x,       x,       x,       x,                                 x,       x,       x,       x,       x,       x,       x,
+      x,       AU_ON,   x,       x,       x,       x,       MACSLEEP,                          x,       x,       x,       x,       x,       x,       x,
     //├────────┼────────┼────────┼────────┼────────┼────────┼────────┤                         ├────────┼────────┼────────┼────────┼────────┼────────┼────────┤
-      x,       x,       x,       x,       x,       L_GAMING,x,                                 x,       x,       x,       x,       x,       x,       x,
+      x,       AU_TOG,  x,       x,       x,       GAMING,  x,                                 x,       x,       x,       x,       x,       x,       x,
     //├────────┼────────┼────────┼────────┼────────┼────────┼────────┼────────┐       ┌────────┼────────┼────────┼────────┼────────┼────────┼────────┼────────┤
-      x,       x,       x,       x,       x,       x,       _v_,     MO(_RESET),      x,       x,       x,       x,       x,       x,       x,       x,
+      x,       AU_OFF,  x,       x,       x,       x,       _v_,     MO(_RESET),      x,       x,       x,       x,       x,       x,       x,       x,
     //├────────┼────────┼────────┼────────┼────┬───┴────┬───┼────────┼────────┤       ├────────┼────────┼───┬────┴───┬────┼────────┼────────┼────────┼────────┤
       x,       x,       x,       x,            x,           x,       x,               x,       x,           x,            x,       x,       x,       x
     //└────────┴────────┴────────┴────────┘    └────────┘   └────────┴────────┘       └────────┴────────┘   └────────┘    └────────┴────────┴────────┴────────┘
@@ -205,13 +451,13 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     //┌────────┬────────┬────────┬────────┬────────┬────────┐                                           ┌────────┬────────┬────────┬────────┬────────┬────────┐
       RESET,   x,       x,       x,       x,       x,                                                   x,       x,       x,       x,       x,       x,
     //├────────┼────────┼────────┼────────┼────────┼────────┼────────┐                         ┌────────┼────────┼────────┼────────┼────────┼────────┼────────┤
-      DEBUG,   x,       x,       x,       x,       x,       x,                                 x,       x,       x,       x,       x,       x,       x,
+      x,       x,       x,       x,       x,       x,       x,                                 x,       x,       x,       x,       x,       x,       x,
     //├────────┼────────┼────────┼────────┼────────┼────────┼────────┤                         ├────────┼────────┼────────┼────────┼────────┼────────┼────────┤
       x,       x,       x,       x,       x,       x,       x,                                 x,       x,       x,       x,       x,       x,       x,
     //├────────┼────────┼────────┼────────┼────────┼────────┼────────┼────────┐       ┌────────┼────────┼────────┼────────┼────────┼────────┼────────┼────────┤
       x,       x,       x,       x,       x,       x,       _v_,     _v_,             x,       x,       x,       x,       x,       x,       x,       x,
     //├────────┼────────┼────────┼────────┼────┬───┴────┬───┼────────┼────────┤       ├────────┼────────┼───┬────┴───┬────┼────────┼────────┼────────┼────────┤
-      x,       x,       x,       x,            x,           x,       x,               x,       x,           x,            x,       x,       x,       x
+      EEPROM_RESET,       x,       x,       x,            x,           x,       x,               x,       x,           x,            x,       x,       x,       x
     //└────────┴────────┴────────┴────────┘    └────────┘   └────────┴────────┘       └────────┴────────┘   └────────┘    └────────┴────────┴────────┴────────┘
     ),
 };

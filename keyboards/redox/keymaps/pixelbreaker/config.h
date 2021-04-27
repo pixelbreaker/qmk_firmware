@@ -17,14 +17,33 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
-// #define TAPPING_TERM 200
-#define AUDIO_PIN A3
 
-/* Use I2C or Serial, not both */
+#define AUTO_SHIFT_TIMEOUT 250
+#define TAPPING_TERM 200
+
+#define AUDIO_PIN C6
+#undef TEMPO_DEFAULT
+#define TEMPO_DEFAULT 100
+#define NO_MUSIC_MODE
 #define USE_SERIAL
+
+// mousekeys
+#define MOUSEKEY_INTERVAL 16
+#define MOUSEKEY_MAX_SPEED 6
+#define MOUSEKEY_TIME_TO_MAX 20
+#define MOUSEKEY_DELAY 150
+
+// encoders
+#define ENCODERS_PAD_A { F4 }
+#define ENCODERS_PAD_B { D1 }
+#define ENCODER_RESOLUTION 4
+
+// #define ENCODER_DIRECTION_FLIP
+
+#undef DEBOUNCE
+#define DEBOUNCE 2
+
 //#define USE_I2C
-
-
 
 /* Select hand configuration */
 #define MASTER_LEFT

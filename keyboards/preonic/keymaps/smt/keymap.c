@@ -259,7 +259,6 @@ void startup_user()
 
 void shutdown_user()
 {
-    PLAY_SONG(tone_goodbye);
     _delay_ms(150);
     stop_all_notes();
 }
